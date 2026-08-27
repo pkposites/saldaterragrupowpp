@@ -1,0 +1,9 @@
+name = "saldaterra-capi"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+PIXEL_ID = "780007211675556"
+
+# Defina o token com:
+#   wrangler secret put META_ACCESS_TOKEN
