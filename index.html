@@ -201,7 +201,7 @@ fbq('track', 'PageView');
 <script>
   const GRUPO_WHATSAPP = "https://chat.whatsapp.com/FUxNbunDwQ10uPpCLy8izf?s=sw&p=i&mlu=4";
   // Troque pela URL do seu Worker depois de publicado no Cloudflare:
-  const CAPI_ENDPOINT = "https://saldaterra-capi.robson-oc96.workers.dev";
+  const CAPI_ENDPOINT = "https://saldaterrawrk.robson-oc96.workers.dev/event";
 
   function getCookie(name){
     const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -220,10 +220,13 @@ fbq('track', 'PageView');
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
+        event_name: 'Lead',
         event_id: eventId,
         event_source_url: window.location.href,
-        fbp: getCookie('_fbp'),
-        fbc: getCookie('_fbc')
+        user_data: {
+          fbp: getCookie('_fbp'),
+          fbc: getCookie('_fbc')
+        }
       })
     }).catch(()=>{});
 
