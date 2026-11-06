@@ -20,11 +20,14 @@ t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('consent', 'revoke');
 fbq('init', '780007211675556');
-fbq('track', 'PageView');
+window.SDT_PV_ID = 'pv_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+fbq('track', 'PageView', {}, { eventID: window.SDT_PV_ID });
 </script>
 
 <!-- Cadê o Lead -->
 <script src="https://cadeolead.com.br/tracker.js" data-key="pk_820a6ee0226e4abe9d8681e521916447" data-consent="banner" async></script>
+<!-- Meta CAPI (função do Netlify) -->
+<script src="/capi.js" defer></script>
 
 <style>
   :root{
@@ -513,7 +516,6 @@ fbq('track', 'PageView');
 (function(){
   // ===================== CONFIG =====================
   const WHATSAPP_NUMERO = "5521967324908";
-  const CAPI_ENDPOINT   = "https://saldaterrawrk.robson-oc96.workers.dev/event";
   // Incluir a origem (UTMs) no fim da mensagem do WhatsApp?
   const UTM_NA_MENSAGEM = true;
 
@@ -521,10 +523,6 @@ fbq('track', 'PageView');
   const STORE_KEY = "sdt_atacado_utms";
 
   // ===================== UTILS =====================
-  function getCookie(name){
-    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return m ? decodeURIComponent(m[2]) : undefined;
-  }
   function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
   function load(k){ try{ return JSON.parse(localStorage.getItem(k) || "null"); }catch(e){ return null; } }
   function limpar(s){ return (s || "").replace(/\s+/g, " ").trim(); }
@@ -534,20 +532,11 @@ fbq('track', 'PageView');
   const params = new URLSearchParams(window.location.search);
   let utms = {};
   UTM_KEYS.forEach(k => { const v = params.get(k); if (v) utms[k] = v.slice(0, 120); });
-  const fbclid = params.get("fbclid");
   const gclid  = params.get("gclid");
   if (Object.keys(utms).length) {
     store(STORE_KEY, utms);
   } else {
     utms = load(STORE_KEY) || {};
-  }
-
-  // fbc: se veio do Facebook com fbclid e o cookie ainda não existe, monta no formato da Meta
-  function getFbc(){
-    const c = getCookie("_fbc");
-    if (c) return c;
-    if (fbclid) return "fb.1." + Date.now() + "." + fbclid;
-    return undefined;
   }
 
   // ===================== FORM =====================
@@ -631,17 +620,12 @@ fbq('track', 'PageView');
     // 1) Pixel client-side (dedup com CAPI via eventID)
     try { fbq("track", "Lead", customData, { eventID: eventId }); } catch(err){}
 
-    // 2) CAPI server-side via Worker
-    try {
-      const body = JSON.stringify({
-        event_name: "Lead",
-        event_id: eventId,
-        event_source_url: window.location.href,
-        user_data: { fbp: getCookie("_fbp"), fbc: getFbc() },
-        custom_data: Object.assign({ gclid: gclid || undefined }, customData)
-      });
-      fetch(CAPI_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: body, keepalive: true }).catch(()=>{});
-    } catch(err){}
+    // 2) CAPI server-side pela função do Netlify (mesmo eventID → Meta deduplica)
+    window.SDTCapi?.send("Lead", {
+      eventId: eventId,
+      customData: Object.assign({ gclid: gclid || undefined }, customData),
+      userData: { fn: nome.split(" ")[0], ph: inpTel.value }
+    });
 
     // 3) Cadê o Lead: identifica o contato e envia as respostas do formulário
     window.LeadHub?.identify({ name: nome, phone: inpTel.value });

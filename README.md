@@ -8,29 +8,19 @@ Landing page estática hospedada na Netlify.
 - Qualquer push na branch principal reimplanta o site automaticamente.
 
 ## CAPI (Meta Conversions API)
-O Worker em `capi-worker/` encaminha eventos de conversão server-side para a Meta,
-complementando o Pixel (`780007211675556`) já carregado na página.
+A CAPI roda numa função do Netlify (`netlify/functions/capi.mjs`, rota `/api/capi`),
+no mesmo domínio das páginas. As páginas enviam pelo `capi.js`:
+- `PageView` com o mesmo `eventID` do Pixel (`window.SDT_PV_ID`) e `Lead` no clique,
+  com nome e telefone (o hash SHA-256 é feito na função).
+- Só envia depois do aceite de cookies do Cadê o Lead (`localStorage.lh_consent`);
+  sem aceite, a medição mínima fica com o servidor do Cadê o Lead.
 
-### Deploy do Worker
-```
-cd capi-worker
-wrangler login
-wrangler secret put META_ACCESS_TOKEN   # cole o token gerado no Events Manager
-wrangler deploy
-```
+Variáveis no Netlify (Site configuration > Environment variables):
+- `META_ACCESS_TOKEN` (obrigatória, secreta): token do Events Manager.
+- `META_PIXEL_ID` (opcional, padrão `780007211675556`).
+- `META_TEST_EVENT_CODE` (opcional): para ver os eventos em "Testar eventos".
 
-### Uso no front-end
-```js
-fetch("https://<seu-worker>.workers.dev/event", {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({
-    event_name: "Lead",
-    event_source_url: location.href,
-    user_data: { fbp: getCookie("_fbp"), fbc: getCookie("_fbc") },
-  }),
-});
-```
+O antigo Worker da Cloudflare (`capi-worker/`) não é mais usado pelas páginas.
 
 ## Cadê o Lead
 Todas as páginas carregam `https://cadeolead.com.br/tracker.js` logo após o Pixel (com
