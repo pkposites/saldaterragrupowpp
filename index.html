@@ -14,9 +14,16 @@ n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('consent', 'revoke');
 fbq('init', '780007211675556');
-fbq('track', 'PageView');
+window.SDT_PV_ID = 'pv_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+fbq('track', 'PageView', {}, { eventID: window.SDT_PV_ID });
 </script>
+
+<!-- Cadê o Lead -->
+<script src="https://cadeolead.com.br/tracker.js" data-key="pk_820a6ee0226e4abe9d8681e521916447" data-consent="banner" async></script>
+<!-- Meta CAPI (função do Netlify) -->
+<script src="/capi.js" defer></script>
 
 <style>
   :root{
@@ -166,11 +173,13 @@ fbq('track', 'PageView');
     color:#8a8f7e;
   }
   .rodape b{color:var(--verde-folha);}
+  .rodape a{color:var(--verde-folha);font-weight:700;}
 
   @media (max-width:380px){
     h1{font-size:29px;}
   }
 </style>
+<script src="/passo-contato.js" defer></script>
 </head>
 <body>
 
@@ -195,46 +204,48 @@ fbq('track', 'PageView');
     </a>
   </div>
 
-  <p class="rodape">Sal da Terra · Mercearia de bairro em <b>Duque de Caxias/RJ</b></p>
+  <p class="rodape">Sal da Terra · Mercearia de bairro em <b>Duque de Caxias/RJ</b> · <a href="https://cadeolead.com.br/privacidade/pk_820a6ee0226e4abe9d8681e521916447" target="_blank" rel="noopener">Política de privacidade</a></p>
 </div>
 
 <script>
   const GRUPO_WHATSAPP = "https://chat.whatsapp.com/IIkgOcKvRyt9w3k8QZXZ5y?s=cl&p=i&mlu=4&ilr=4";
-  // Troque pela URL do seu Worker depois de publicado no Cloudflare:
-  const CAPI_ENDPOINT = "https://saldaterrawrk.robson-oc96.workers.dev/event";
-
-  function getCookie(name){
-    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-    return m ? m.pop() : '';
-  }
 
   document.getElementById('ctaBtn').addEventListener('click', function(e){
     e.preventDefault();
+    if (window.PassoContato) {
+      PassoContato.abrir({
+        titulo: 'Falta pouco pra entrar no Grupo VIP!',
+        descricao: 'Informe seu nome e WhatsApp para receber as ofertas.',
+        botao: 'Entrar no Grupo VIP',
+        onConfirmar: entrarNoGrupo
+      });
+    } else {
+      entrarNoGrupo(null);
+    }
+  });
+
+  function entrarNoGrupo(dados){
     const eventId = 'lead_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
 
     // 1) Pixel client-side (Meta dedup via eventID)
     fbq('track', 'Lead', { content_name: 'Grupo VIP Sal da Terra' }, { eventID: eventId });
 
-    // 2) CAPI server-side via Worker (não bloqueia o redirect)
-    fetch(CAPI_ENDPOINT, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        event_name: 'Lead',
-        event_id: eventId,
-        event_source_url: window.location.href,
-        user_data: {
-          fbp: getCookie('_fbp'),
-          fbc: getCookie('_fbc')
-        }
-      })
-    }).catch(()=>{});
+    // 2) CAPI server-side pela função do Netlify (mesmo eventID → Meta deduplica)
+    window.SDTCapi?.send('Lead', {
+      eventId: eventId,
+      customData: { content_name: 'Grupo VIP Sal da Terra' },
+      userData: dados ? { fn: dados.nome.split(' ')[0], ph: dados.telefone } : {}
+    });
 
-    // 3) Redireciona pro grupo
+    // 3) Cadê o Lead: identifica o contato e passa o link pelo rastreador
+    if (dados) window.LeadHub?.identify({ name: dados.nome, phone: dados.telefone });
+    const destino = window.LeadHub ? window.LeadHub.whatsappUrl(GRUPO_WHATSAPP) : GRUPO_WHATSAPP;
+
+    // 4) Redireciona pro grupo
     setTimeout(function(){
-      window.location.href = GRUPO_WHATSAPP;
+      window.location.href = destino;
     }, 250);
-  });
+  }
 </script>
 
 </body>
