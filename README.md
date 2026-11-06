@@ -31,3 +31,9 @@ fetch("https://<seu-worker>.workers.dev/event", {
   }),
 });
 ```
+
+## Cadê o Lead
+Todas as páginas carregam `https://cadeolead.com.br/tracker.js` logo após o Pixel (com
+`fbq('consent', 'revoke')` antes do `init`; o tracker libera o Pixel após o aceite do banner).
+Antes de abrir o WhatsApp, cada botão pede nome + WhatsApp (`passo-contato.js`, ou o próprio
+formulário em `/atacado`), chama `LeadHub.identify`/`LeadHub.set` e abre `LeadHub.whatsappUrl(url)`.

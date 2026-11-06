@@ -14,9 +14,13 @@ n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('consent', 'revoke');
 fbq('init', '780007211675556');
 fbq('track', 'PageView');
 </script>
+
+<!-- Cadê o Lead -->
+<script src="https://cadeolead.com.br/tracker.js" data-key="pk_820a6ee0226e4abe9d8681e521916447" data-consent="banner" async></script>
 
 <style>
   :root{
@@ -166,6 +170,7 @@ fbq('track', 'PageView');
     color:#8a8f7e;
   }
   .rodape b{color:var(--verde-folha);}
+  .rodape a{color:var(--verde-folha);font-weight:700;}
 
   @media (max-width:380px){
     h1{font-size:29px;}
@@ -241,6 +246,7 @@ fbq('track', 'PageView');
     min-height:16px;
   }
 </style>
+<script src="/passo-contato.js" defer></script>
 </head>
 <body>
 
@@ -276,7 +282,7 @@ fbq('track', 'PageView');
     <p class="status-envio" id="statusEnvio"></p>
   </div>
 
-  <p class="rodape">Sal da Terra · Mercearia de bairro em <b>Duque de Caxias/RJ</b></p>
+  <p class="rodape">Sal da Terra · Mercearia de bairro em <b>Duque de Caxias/RJ</b> · <a href="https://cadeolead.com.br/privacidade/pk_820a6ee0226e4abe9d8681e521916447" target="_blank" rel="noopener">Política de privacidade</a></p>
 </div>
 
 <script>
@@ -296,18 +302,7 @@ fbq('track', 'PageView');
     return m ? decodeURIComponent(m[2]) : undefined;
   }
 
-  // TODO: plugar aqui a integração real com o LeadHub (endpoint + auth key).
-  // Por enquanto só registra no console para não travar o fluxo do usuário.
-  function sendToLeadHub(payload){
-    console.info('[LeadHub] lead capturado (stub):', payload);
-    // fetch("https://SEU-ENDPOINT-LEADHUB/leads", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json", "Authorization": "Bearer SEU_TOKEN" },
-    //   body: JSON.stringify(payload)
-    // }).catch(()=>{});
-  }
-
-  function escolherSegmento(segmento){
+  function escolherSegmento(segmento, dados){
     const eventId = 'lead_' + segmento + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
     const statusEl = document.getElementById('statusEnvio');
     if (statusEl) statusEl.textContent = 'Te levando pro WhatsApp...';
@@ -333,26 +328,30 @@ fbq('track', 'PageView');
       })
     }).catch(()=>{});
 
-    // 3) LeadHub (lista própria para remarketing/ações futuras)
-    sendToLeadHub({
-      segmento: segmento,
-      event_id: eventId,
-      source_url: window.location.href,
-      fbp: userData.fbp,
-      fbc: userData.fbc,
-      timestamp: new Date().toISOString()
-    });
-
     const texto = encodeURIComponent(MENSAGENS[segmento]);
-    const destino = `https://wa.me/${WHATSAPP_NUMERO}?text=${texto}`;
+    const url = `https://wa.me/${WHATSAPP_NUMERO}?text=${texto}`;
+
+    // 3) Cadê o Lead: identifica o contato, registra o tipo de compra e passa o link pelo rastreador
+    if (dados) window.LeadHub?.identify({ name: dados.nome, phone: dados.telefone });
+    window.LeadHub?.set({ "Tipo de compra": segmento === 'atacado' ? 'Atacado' : 'Varejo' });
+    const destino = window.LeadHub ? window.LeadHub.whatsappUrl(url) : url;
     window.location.href = destino;
   }
 
+  function pedirContato(segmento){
+    if (!window.PassoContato) return escolherSegmento(segmento, null);
+    PassoContato.abrir({
+      titulo: segmento === 'atacado' ? 'Compra no atacado' : 'Compra no varejo',
+      descricao: 'Informe seu nome e WhatsApp para a gente te atender.',
+      botao: 'Continuar no WhatsApp',
+      onConfirmar: function(dados){ escolherSegmento(segmento, dados); }
+    });
+  }
   document.getElementById('btnAtacado').addEventListener('click', function(){
-    escolherSegmento('atacado');
+    pedirContato('atacado');
   });
   document.getElementById('btnVarejo').addEventListener('click', function(){
-    escolherSegmento('varejo');
+    pedirContato('varejo');
   });
 </script>
 </body>
