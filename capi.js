@@ -8,15 +8,22 @@
  * - Usa o mesmo event_id do Pixel para a Meta deduplicar.
  * - Envia o PageView da página com o ID definido em window.SDT_PV_ID (no snippet do Pixel).
  *
+ * Páginas sem o Cadê o Lead (sem banner) usam:
+ *   <script src="/capi.js" data-consent="none" defer></script>
+ * e enviam direto, sem esperar consentimento.
+ *
  * Uso:
  *   SDTCapi.send("Lead", { eventId, customData: {...}, userData: { ph, fn } });
  */
 (function(){
   var ENDPOINT = "/api/capi";
+  var tag = document.currentScript;
+  var SEM_BANNER = !!(tag && tag.getAttribute("data-consent") === "none");
   var fila = [];
   var vigiando = false;
 
   function consentimento(){
+    if (SEM_BANNER) return "granted";
     try { return window.localStorage.getItem("lh_consent"); } catch(e){ return null; }
   }
   function getCookie(name){
